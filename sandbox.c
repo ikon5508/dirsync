@@ -4,14 +4,57 @@
 
 #include "logging.h"
 
+#include "shared.h"
+
 
 int main (void)
 {
-init_log ("./tlog.txt");
+init_log ("./log/tlog.txt");
 
-loggingf (" %d-this is cool-%c, and this too-%s, and this too-\nXXX%d", 50, '$', "wow2", 500);
+char rmlist[maxbuffer];
+struct buffer_data remote_list;
+remote_list.p = rmlist;
+remote_list.max = maxbuffer;
 
-//loggingf ("\nthis is cool %d, and this too %s, and this too %d\nXXX", 500, "wow!", 50);
+char rmlist1[maxbuffer];
+struct buffer_data comp_list;
+comp_list.p = rmlist1;
+comp_list.max = maxbuffer;
+
+char rmlist2[maxbuffer];
+struct buffer_data local_list;
+local_list.p = rmlist2;
+local_list.max = maxbuffer;
+
+
+
+
+
+
+make_listfiles (&local_list, "./dir1");
+make_listfiles (&remote_list, "./dir2");
+
+
+
+//remote_list.procint += 5;
+//local_list.procint += 5;
+
+
+make_comparison (&comp_list, remote_list, local_list);
+
+
+printf ("lpcal: %s\n", local_list.p);
+printf ("remote %s\n", remote_list.p);
+
+
+printf ("comp %s\n", comp_list.p);
+
+
+
+
+
+
+close_log ();
 
   return 0;
 }

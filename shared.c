@@ -3,18 +3,27 @@
 #include "shared.h"
 #include "logging.h"
 
+//#include "client.h"
+//#include "server.h"
+
+int sendfile (const char *path, const int fd)
+{
+
+} // sendfile
+
+int getfile (const char *path, const int fd)
+{
+
+}// getfile
+
+
 
 
 void process_complist (const struct buffer_data comp, const char *basepath, const int fd)
 {
-const int debug = 100;
-
-
-if (debug > 99) printf ("now process comparison list\n%s\n", comp.p);
-
 
 int start_line = 0;
-int end_line = 0;
+int end_line = -1;
 	
 char entry [string_sz];
 char path [string_sz];
@@ -24,33 +33,54 @@ char action;
 
 int itemcount = 0;
 
+
+//printf ("comp list itemcount %d: %s\n", comp.procint, basepath);
+
+
+
 while (itemcount < comp.procint)
 {
 start_line = end_line + 1;
 end_line = getnext (comp.p, (char) 10, start_line, comp.len);
 
-midstr (comp.p, path, start_line, end_line);
+++itemcount;
 
-printf ("%d: %s\n", itemcount, path);
+midstr (comp.p, path, start_line + 4, end_line);
 
+sprintf (fullpath, "%s/%s", basepath, path);
+char action = comp.p[start_line];
 
-
-	
-++itemcount;	
-}	
-}
-
-
-
-
-void make_comparison (struct buffer_data *comp, const struct buffer_data remote, const struct buffer_data local)
+if (action == 's')
 {
-const int debug = 0;
+sprintf (entry, "<sendfile=%s>", path);
+sock_write (fd, entry, 0);
+sendfile (fullpath, fd); 
+} // if s
 
-// 1 for basic, 200 for local list,, 100 for matching info 
+if (action == 'g')
+{
+sprintf (entry, "<getfile=%s>", path);
+sock_write (fd, entry, 0);
+getfile (fullpath, fd);
+} // if g
 
-if (debug > 199)
-    printf ("%s\n", remote.p);
+
+loggingf (100, "%d: action: %c, path: %s\n", itemcount, action, path);
+
+}	// while
+} // process process_complist
+
+
+
+
+
+struct comp_data make_comparison (struct buffer_data *comp, const struct buffer_data remote, const struct buffer_data local)
+{
+struct comp_data rtn;
+rtn.bytesin = 0;
+rtn.bytesout = 0;
+rtn.filesin = 0;
+rtn.filesout = 0;
 
 int local_start [local.procint];
 int remote_start [remote.procint];
@@ -70,20 +100,11 @@ char remote_ftype [remote.procint];
 size_t local_sz [local.procint];
 size_t remote_sz [remote.procint];
 
-
-
 int end_line = -1;
 int start_path;
 
 int dftype, dmtime, dsz, end_path, entrylen;
 
-size_t bytesin = 0;
-size_t bytesout = 0;
-int filesin = 0;
-int filesout = 0;
-
-
-//char temp [string_sz];
 char temp1 [string_sz];
 char temp2 [string_sz];
 
@@ -96,11 +117,9 @@ for (int i = 0; i < local.procint; ++i)
 for (int i = 0; i < remote.procint; ++i)
     remote_stat [i] = 'u';
 
-
-	const char *action;
-	const char *send = "snd:";
-	const char *get = "get:";
-
+const char *action;
+const char *send = "snd:";
+const char *get = "get:";
 
 // local iteration loop
 while (itemcount < local.procint)
@@ -142,12 +161,15 @@ local_start [itemcount] = start_path;
 } // local iteration
 
 // remote iteration loop
-end_line = getnext (remote.p, (char) 10, 0, remote.len);
+//end_line = getnext (remote.p, (char) 10, 0, remote.len);
+end_line = -1;
+
 itemcount = 0;
 while (itemcount < remote.procint)
 {
 start_path = end_line +1;
 remote_start [itemcount] = start_path;
+
 
     end_line = getnext (remote.p, (char) 10, end_line + 1, remote.len);
         if (end_line == -1)
@@ -185,21 +207,15 @@ remote_start [itemcount] = start_path;
 comp->len = 0;
 itemcount = 0;
 // actual comparison loops
+// do local against remote first
+// then remote against local
+
 for (int loc = 0; loc < local.procint; ++loc)
 {
-//if (local_stat [loc] == 'c') continue;
 
-if (debug > 99) {
-    midstr (local.p, temp1, local_start [loc], local_start [loc] + local_pathlen [loc]);
-    printf ("loc: %d: %s\n", loc, temp1);}
-    
 for (int rem = 0; rem < remote.procint; ++rem)
 {
 if (remote_stat [rem] == 'c') continue;
-
-if (debug > 99) {
-    midstr (remote.p, temp2, remote_start [rem], remote_start [rem] + remote_pathlen [rem]);
-    printf ("rem: %d: %s\n", rem, temp2);}
 
 //if pathlen ==
 if (local_pathlen [loc] == remote_pathlen [rem])
@@ -210,6 +226,7 @@ midstr (remote.p, temp2, remote_start [rem], remote_start [rem] + remote_pathlen
 // if paths match
 if (!strcmp (temp1, temp2))
 { 
+	
 if (!remote_ftype [rem] == local_ftype [loc])
 	continue; // break if file types differ
 	
@@ -221,18 +238,16 @@ if (!remote_ftype [rem] == local_ftype [loc])
 
 if (local_mtime [loc] == remote_mtime [rem])
 {    
-	if (debug) printf ("items same in age, no action taken\n");
 	continue;
 } // if mtime is same
 
 if (local_mtime [loc] > remote_mtime [rem])
 {
-	if (debug) printf ("local is newer\n");
 	action = send;
-	bytesout += local_sz [loc];
-	filesout += 1;
+	rtn.bytesout += local_sz [loc];
+	rtn.filesout += 1;
 	entrylen = sprintf (temp2, "%s%s\n", action, temp1);
-
+++itemcount;
 comp->len += entrylen;
 strcat (comp->p, temp2);
 
@@ -240,12 +255,11 @@ strcat (comp->p, temp2);
 
 if (local_mtime [loc] < remote_mtime [rem])
 {
-	if (debug) printf ("remote is newer\n");
 	action = get;
-	bytesin += remote_sz [rem];
-	filesin += 1;
+	rtn.bytesin += remote_sz [rem];
+	rtn.filesin += 1;
 	entrylen = sprintf (temp2, "%s%s\n", action, temp1);
-
+++itemcount;
 comp->len += entrylen;
 strcat (comp->p, temp2);
 
@@ -256,12 +270,8 @@ strcat (comp->p, temp2);
 
 break;    
 }   // if !strcmp
-
-
 } // if len ==
-    
 } // for remote
-
 } // for local
 
 // comparison list made, now loop through file lists for unchecked files
@@ -271,8 +281,8 @@ for (int i = 0; i < local.procint; ++i)
 if (local_stat [i] == 'u')
 {
 	action = send;
-	bytesout += local_sz [i];
-	filesout += 1;
+	rtn.bytesout += local_sz [i];
+	rtn.filesout += 1;
 
 dftype = getnext (local.p, ';', local_start [i], local.len);
 
@@ -282,7 +292,7 @@ entrylen = sprintf (temp2, "%s%s\n", action, temp1);
 
 comp->len += entrylen;
 strcat (comp->p, temp2);
-
+++itemcount;
 	
 } // file not yet added
 } // for local list
@@ -292,10 +302,10 @@ for (int i = 0; i < remote.procint; ++i)
 {
 if (remote_stat [i] == 'u')
 {
-	
+		
 	action = get;
-	bytesin += remote_sz [i];
-	filesin += 1;
+	rtn.bytesin += remote_sz [i];
+	rtn.filesin += 1;
 
 dftype = getnext (remote.p, ';', remote_start [i], remote.len);
 
@@ -303,27 +313,21 @@ midstr (remote.p, temp1, remote_start [i], dftype);
 
 entrylen = sprintf (temp2, "%s%s\n", action, temp1);
 
+
+
 comp->len += entrylen;
 strcat (comp->p, temp2);
 
-	
+++itemcount;	
 } // file not yet added
 
 } // for remote list
 
 
-comp->procint = filesin + filesout;
+loggingf (200, "%s\n", comp->p);
+comp->procint = itemcount;
+return (rtn);
 
-//entrylen = sprintf (temp1, "files in: %d:%d bytes, files out: %d:%d bytes\n", filesin, bytesin, filesout, bytesout);
-//strcat (comp->p, temp1);
-//comp->len += entrylen;
-
-if (debug) printf ("%s\n", comp->p);
-
-
-if (debug) printf ("local item count is: %d len: %d\n", local.procint, local.len);
-
-if (debug) printf ("remote item count is: %d len: %d\n", remote.procint, remote.len);
 
 } // make_comparison
 
@@ -331,7 +335,9 @@ int make_listfiles(struct buffer_data *list, const char *basepath)
 {
 DIR *dp;
 struct dirent *ep;
+
 const int debug = 0;
+
 
 char filepath [string_sz] = "";
 char subdir [string_sz] = "";

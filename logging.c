@@ -2,11 +2,17 @@
 #include "libmemory.h"
 
 
-int fd;
+const int debug = 100;
 
-int loggingf (const char *format, ...)
+
+int fd = 0;
+
+int loggingf (const int level, const char *format, ...)
 {
-// does not accept modulator as first charactor
+	
+if (!level)
+	return (0);
+
 va_list ap;
 
 va_start (ap, format);
@@ -15,11 +21,13 @@ va_start (ap, format);
 
 int formatlen = strlen (format);
 char type;
-char specify_len = 0;
-char entry [string_sz] = "";
+int specify_len = 0;
+char entry [maxbuffer] = "";
 //char part [maxbuffer] = "";
 
 int len = 0;
+
+
 
 int d;
 char c;
@@ -30,9 +38,16 @@ for (int fplace = 0; fplace < formatlen; ++fplace)
 {
 if (format [fplace] == '%')
 {
-
 type = format [fplace + 1];
-    
+
+/*
+if (type == '.')
+{
+	int specify_len = 1;
+	
+	
+} // if type == .
+*/
 
 if (type == 's')
 {
@@ -75,7 +90,19 @@ entry [len] = format [fplace];
 
 va_end(ap);
 
+if (level == 1)
+	printf ("%s", entry);
+//int idebug = debug;
+
+if (level <= 2 || level == debug)
+{
+
+if (fd == 0)
+		return 0;
+
 write (fd, entry, len);
+
+} // if
 
 } // loggingf
 
@@ -88,6 +115,7 @@ void close_log ()
 
 int init_log (const char *path)
 {
+
 fd = open (path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
 
 //printf ("%d:%d\n", fd, errno);

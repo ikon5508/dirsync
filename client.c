@@ -1,11 +1,12 @@
 #include "client.h"
 #include "libmemory.h"
 #include "socket.h"
-
+#include "logging.h"
 #include "shared.h"
 
 
 //int init_buffer (struct buffer_data *buffer, const int size);
+
 
 
 int main (int argc, char **argv)
@@ -18,6 +19,21 @@ int portno = 9999;
 char basepath[200] = ".";
 int n;
 
+if (debug)
+{
+char outstr[200];
+time_t t;
+struct tm *tmp;
+t = time(NULL);
+tmp = localtime(&t);
+//strftime(outstr, 200, "./log/client-%c.txt", tmp);
+
+strcpy (outstr, "./log/client.txt");
+system ("cd log; rm cli*");
+init_log (outstr);
+}// if debug
+
+
 for (int i = 1; i < argc; ++i)
 {
 int argvlen = strlen(argv[i]);
@@ -28,7 +44,7 @@ int argvlen = strlen(argv[i]);
     d1 = atoi (argv[i]);
     d2 = getnext (argv[i], '.', 1, argvlen);
     if (d1 > 0 && d2 == -1)
-    {portno = d1; printf ("portno: %d\n", portno);}
+    {portno = d1; loggingf (1, "portno: %d\n", portno);}
     
 //set IP if given
     d1 = getnext (argv[i], '.', 1, argvlen);
@@ -38,7 +54,7 @@ int argvlen = strlen(argv[i]);
             if (d2 > 0)
             {
               server = gethostbyname(argv[i]);
-              printf ("host set: %s\n", argv[i]);
+              loggingf (1, "host set: %s\n", argv[i]);
             hostset = 1;
                 
             }
@@ -57,15 +73,10 @@ d1 = getnext (argv[i], '/', 0, argvlen);
          
         }
         
-         printf ("base path set: %s\n", basepath);   
+         loggingf (1, "base path set: %s\n", basepath);   
         }
 } // for
     
-// generate local file list
-    
-
-//printf ("%s:%d\n", local_list.p, local_list.len);
-
 
 if (!hostset)
 {
@@ -103,13 +114,12 @@ sock_setnonblock (sockfd);
 
 sock_write (sockfd, "<getlist>", 0);
 
-//printf ("%s\n", inbuff.p);
+loggingf (100, "sent: <getlist>\n");
 
 char inb[maxbuffer];
 struct buffer_data inbuff;
 inbuff.p = inb;
 inbuff.max = maxbuffer;
-
 
 char rmlist[maxbuffer] = "";
 struct buffer_data remote_list;
@@ -128,25 +138,15 @@ local_list.max = maxbuffer;
 
 make_listfiles (&local_list, basepath);
 
-
-
-
-const int debug = 1;
-int tlen = 0;
+loggingf (100, "local file count: %d\n", local_list.procint);
 
 inbuff.len = sock_read (sockfd, inbuff.p, inbuff.max);
-tlen = inbuff.len;
 
-if (debug)
-    printf ("len: %d\n", inbuff.len);
-
-//printf ("recieving remote list\n len: %d \n %s\n", inbuff.len, inbuff.p);
-
-
+loggingf (100, "remote list recieved (inbuff.p):\n%s\n", inbuff.p);
 
 int d1, d2;
 int session = 0;
-char temp[10] = "";
+char temp[100] = "";
 
 d1 = search (inbuff.p, "<beginlist=", 0, inbuff.len);
 d2 = search (inbuff.p, "<endlist>", (d1 + 1), inbuff.len);
@@ -157,61 +157,78 @@ if (d1 > 0 && d2 > 0)
 
 
 if (!session)
-//{printf ("remote list incomplete, additional logic required\n%s\n", inbuff.p); exit (0);}
 {
-strcpy (remote_list.p, inbuff.p);
+remote_list.len = midstr (inbuff.p, remote_list.p, d1 + 4, inbuff.len);
 
-int loopcount = 0;
+loggingf (100, "incomplete reciever <multi-read>\n%s\n", inbuff.p);
 
+
+d2 = getnext (inbuff.p, '>', d1, inbuff.len);
+
+loggingf (100, "midstr feed: %d : %d\n", d1, d2);
+
+midstr (inbuff.p, temp, d1 + 1, d2);
+remote_list.procint = atoi (temp);
+
+// put remote itemcount into logging
+loggingf (100, "remote item count is: [%s]:[%d]\n", temp, remote_list.procint);
+	
+
+d2 = -1;
 while (d2 == -1)
 {
 inbuff.len = sock_read (sockfd, inbuff.p, inbuff.max);
-tlen += inbuff.len;
-++loopcount;
-
-if (debug)
-    printf ("loop: %d, len: %d\n", loopcount, tlen);
 
 strcat (remote_list.p, inbuff.p);
+remote_list.len += inbuff.len;
+
+loggingf (100, "added: %s\n", inbuff.p);
 
 d2 = search (inbuff.p, "<endlist>", 0, inbuff.len);
 } // while   
-    
-} // if ! listcomplete
+//remote_list.len = strlen (remote_list.p);
+loggingf (100, "calc len: %d, strlen: %d\n", remote_list.len, strlen (remote_list.p));
+} // if ! session listcomplete
 
-remote_list.len = tlen;
+if (session) 
+{
+loggingf (100, "reciever complete <single read>\n");
+remote_list.len = midstr (inbuff.p, remote_list.p, d1 + 4, inbuff.len - 10);
 
+d2 = getnext (inbuff.p, '>', d1, inbuff.len);
 
+loggingf (100, "midstr feed: %d : %d\n", d1, d2);
 
-if (session)
-    strcpy (remote_list.p, inbuff.p);
-
-//if (listcomplete)
-//    printf ("list completed!!!\n");
-
-if (debug > 99)
-    printf ("%s\n", remote_list.p);
-
-//d1 = '='
-
-//get itemcount and set it for next process
-d2 = getnext (remote_list.p, '>', d1, remote_list.len);
-midstr (remote_list.p, temp, (d1 + 1), d2);
+midstr (inbuff.p, temp, d1 + 1, d2);
 remote_list.procint = atoi (temp);
 
+// put remote itemcount into logging
+//loggingf (100, "remote item count is: [%s]:[%d]\n", temp, remote_list.procint);
+	
+
+} // if session
 
 
-make_comparison (&comp_list, remote_list, local_list);
 
-printf ("%s\n", comp_list.p);
+loggingf (100, "prep compare remote count: %d\n%s\n", remote_list.procint, remote_list.p);
 
 
-//process_complist (comp_list , basepath, sockfd);
 
-//void process_complist (const struct buffer_data comp,const char *basepath, const int fd);
+	
+struct comp_data compdata = make_comparison (&comp_list, remote_list, local_list);
 
+loggingf (1, "need to get: %d files : %d bytes\nneed to send: %d files: %d bytes\n", compdata.filesin, compdata.bytesin, compdata.filesout, compdata.bytesout);
+
+
+//exit (0);
+//printf ("%s\n", comp_list.p);
+
+
+//process_complist (comp_list, basepath, sockfd);
+//exit (0);
 sock_write (sockfd, "<FIN>", 0);
 
 close (sockfd);
+close_log ();
 
 }

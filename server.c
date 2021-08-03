@@ -1,6 +1,8 @@
 #include "server.h"
-#include "libmemory.h"
+//#include "libmemory.h"
 #include "socket.h"
+
+#include "logging.h"
 
 #include "shared.h"
 
@@ -10,12 +12,27 @@ int main (int argc, char **argv)
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
+
+if (debug)
+{
+char outstr[200];
+time_t t;
+struct tm *tmp;
+t = time(NULL);
+tmp = localtime(&t);
+
+
+//strftime(outstr, 200, "./log/server-%c.txt", tmp);
+strcpy (outstr, "./log/server.txt");
+system ("cd log; rm serv*");
+init_log (outstr);
+}// if debug
+
 int portno = 9999;
 char basepath[200] = ".";
 int n;
 
-const int debug = 1;
-        
+
 int outerloop = 0;
 
 int connfd;
@@ -26,14 +43,14 @@ for (int i = 1; i < argc; ++i)
 int argvlen = strlen(argv[i]);
 
 if (!strcmp (argv[i], "-loop"))
-{ printf ("outer loop set\n"); outerloop = 1; continue; }
+{ loggingf (1, "outer loop set\n"); outerloop = 1; continue; }
 
     int d1, d2;
     // set port# if given
     d1 = atoi (argv[i]);
     d2 = getnext (argv[i], '.', 1, argvlen);
     if (d1 > 0 && d2 == -1)
-    {portno = d1; printf ("portno: %d\n", portno);}
+    portno = d1;
     
 
         
@@ -48,32 +65,17 @@ d1 = getnext (argv[i], '/', 0, argvlen);
         
         strcpy (basepath, argv[i]);
          
-        }
+        } // if / end
         
-         printf ("base path set: %s\n", basepath);   
-        }
+        } // if / chech
             
 
         
 } // for
 
-
+loggingf (1, "base path set: %s\n", basepath);   
+loggingf (1, "portno: %d\n", portno);
 int sv_fd = prepsocket(portno);
-
-
-goto skip;
-
-while (outerloop)
-{
-skip:
-
-
-connfd = accept(sv_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
-
-sock_setnonblock (connfd);
-    
-
-//printf ("%s\n", local_list.p);
 
 char inb[maxbuffer];
 struct buffer_data inbuff;
@@ -92,50 +94,78 @@ local_list.max = maxbuffer;
 
 make_listfiles (&local_list, basepath);
 
+loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
 
-inbuff.len = sock_read (connfd, inbuff.p, inbuff.max);
-int session = 0;
+goto skip;
 
-if (!strcmp (inbuff.p, "<getlist>"))
-    session = 1;
+while (outerloop)
+{
+skip:
 
-if (debug)
-    printf ("session: %d\n", session);
+printf ("inner loop");
 
-int tlen = 0;
-int headlen;
+connfd = accept(sv_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
 
-char header [10];
+sock_setnonblock (connfd);
+int session = 1;
 
-headlen = sprintf (header, "<beginlist=%d>\n", local_list.procint);
-
-tlen = sock_write (connfd, header, headlen);
-tlen += sock_write (connfd, local_list.p , local_list.len);
-tlen += sock_write (connfd, "<endlist>" , 0);
+time_t basetime;
+time (&basetime);
 
 while (session)
 {
 inbuff.len = sock_read (connfd, inbuff.p, inbuff.max);
+
+if (inbuff.len > 0)
+{
+inbuff.p[inbuff.len] = 0;
+loggingf (100, "\n..%d..\nreciever\n%s\n...\n", inbuff.len, inbuff.p);
+time (&basetime);
+} // if len > 0
+
+if (inbuff.len == -1)
+{loggingf (1, "timeout = -1\n"); break;}
+
+if (inbuff.len == 0)
+{
+time_t deadtime;
+time (&deadtime);
+
+if (deadtime  >= basetime + 6)
+{loggingf (1, "timeout = 0\n"); break;}
 	
+}
 
 
+if (!strcmp (inbuff.p, "<getlist>"))
+{
+session = 2;
+char header [100];
+sprintf (header, "<beginlist=%d>\n", local_list.procint);
+
+sock_write (connfd, header, 0);
+sock_write (connfd, local_list.p , local_list.len);
+sock_write (connfd, "<endlist>" , 0);
+
+loggingf (100, "local file list sent to remote host\n%s\n", local_list.p);
+
+} // if <getlist>
+
+if (!strcmp (inbuff.p, "<FIN>"))
+{loggingf (1, "FIN RECIEVED: %s\n", inbuff.p); break;}
 
 
+//loggingf (100, "session: %d\n", session);
 
 
-	
-	int d2 = search (inbuff.p, "<FIN>", 0, inbuff.len);
-	if (d2 > -1)
-		break;
-	
-} // session loop
+} // while session
 
-session = 0;
-
-printf ("all processes completed\n");
-
+loggingf (1, "end processes\n");
 close (connfd);
-} // outerloop
 
-//  sleep (10);
+	
+
+
+} // outerloop
+if (debug) close_log ();
 } // end main
