@@ -119,7 +119,7 @@ inbuff.len = sock_read (connfd, inbuff.p, inbuff.max);
 if (inbuff.len > 0)
 {
 inbuff.p[inbuff.len] = 0;
-loggingf (100, "\n..%d..\nreciever\n%s\n...\n", inbuff.len, inbuff.p);
+//loggingf (100, "\n..%d..\nreciever\n%s\n...\n", inbuff.len, inbuff.p);
 time (&basetime);
 } // if len > 0
 
@@ -131,8 +131,9 @@ if (inbuff.len == 0)
 time_t deadtime;
 time (&deadtime);
 
+// if client stalls boot connection
 if (deadtime  >= basetime + 6)
-{loggingf (1, "timeout = 0\n"); break;}
+{loggingf (1, "client stalled\n"); break;}
 	
 }
 
@@ -151,11 +152,11 @@ loggingf (100, "local file list sent to remote host\n%s\n", local_list.p);
 
 } // if <getlist>
 
-if (!strcmp (inbuff.p, "<FIN>"))
+if (search (inbuff.p, "<FIN>", 0, inbuff.len)  > -1)
 {loggingf (1, "FIN RECIEVED: %s\n", inbuff.p); break;}
 
 
-//loggingf (100, "session: %d\n", session);
+loggingf (100, "session: %d\n", session);
 
 
 } // while session

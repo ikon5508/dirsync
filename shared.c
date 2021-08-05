@@ -1,3 +1,11 @@
+
+#include <dirent.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
+
 #include "libmemory.h"
 #include "socket.h"
 #include "shared.h"
@@ -6,63 +14,69 @@
 //#include "client.h"
 //#include "server.h"
 
-int sendfile (const char *path, const int fd)
-{
-
-} // sendfile
-
-int getfile (const char *path, const int fd)
-{
-
-}// getfile
-
 
 
 
 void process_complist (const struct buffer_data comp, const char *basepath, const int fd)
 {
 
-int start_line = 0;
+int start_line;
 int end_line = -1;
 	
 char entry [string_sz];
 char path [string_sz];
 char fullpath [string_sz];
-	
+
+char temp1 [string_sz];
+char ftype;
 char action;
+
+int dftype;
+int dsize;
+
+char size [100];
 
 int itemcount = 0;
 
-
-//printf ("comp list itemcount %d: %s\n", comp.procint, basepath);
-
-
-
 while (itemcount < comp.procint)
 {
+//"%s%s;%c;%d\n", action, temp1, local_ftype [loc], local_sz [loc]);
 start_line = end_line + 1;
 end_line = getnext (comp.p, (char) 10, start_line, comp.len);
 
+dftype = getnext (comp.p, ';', start_line, end_line);
+dsize = getnext (comp.p, ';', (dftype + 1), end_line);
+
 ++itemcount;
 
-midstr (comp.p, path, start_line + 4, end_line);
+// set variables
+midstr (comp.p, path, start_line + 4, dftype);
+midstr (comp.p, size, dsize, end_line);
+
+ftype = comp.p [dftype + 1];
+action = comp.p[start_line];
 
 sprintf (fullpath, "%s/%s", basepath, path);
-char action = comp.p[start_line];
 
 if (action == 's')
 {
-sprintf (entry, "<sendfile=%s>", path);
+sprintf (entry, "<sendfile=%s;%c;%s>", path, ftype, size);
 sock_write (fd, entry, 0);
 sendfile (fullpath, fd); 
 } // if s
 
+// not stragetigized yet
+/*
 if (action == 'g')
 {
 sprintf (entry, "<getfile=%s>", path);
 sock_write (fd, entry, 0);
+
+// poor design strategy
 getfile (fullpath, fd);
+// fullpath !!!
 } // if g
+*/
 
 
 loggingf (100, "%d: action: %c, path: %s\n", itemcount, action, path);
@@ -161,9 +175,7 @@ local_start [itemcount] = start_path;
 } // local iteration
 
 // remote iteration loop
-//end_line = getnext (remote.p, (char) 10, 0, remote.len);
 end_line = -1;
-
 itemcount = 0;
 while (itemcount < remote.procint)
 {
@@ -212,7 +224,6 @@ itemcount = 0;
 
 for (int loc = 0; loc < local.procint; ++loc)
 {
-
 for (int rem = 0; rem < remote.procint; ++rem)
 {
 if (remote_stat [rem] == 'c') continue;
@@ -226,15 +237,13 @@ midstr (remote.p, temp2, remote_start [rem], remote_start [rem] + remote_pathlen
 // if paths match
 if (!strcmp (temp1, temp2))
 { 
-	
 if (!remote_ftype [rem] == local_ftype [loc])
-	continue; // break if file types differ
-	
-	++itemcount;
-	//if (debug) printf ("%d: %s matched!!!\n", itemcount, temp1);
+continue; // break if file types differ
 
-	local_stat [loc] = 'c';
-	remote_stat [rem] = 'c';
+++itemcount;
+
+local_stat [loc] = 'c';
+remote_stat [rem] = 'c';
 
 if (local_mtime [loc] == remote_mtime [rem])
 {    
@@ -243,10 +252,10 @@ if (local_mtime [loc] == remote_mtime [rem])
 
 if (local_mtime [loc] > remote_mtime [rem])
 {
-	action = send;
-	rtn.bytesout += local_sz [loc];
-	rtn.filesout += 1;
-	entrylen = sprintf (temp2, "%s%s\n", action, temp1);
+action = send;
+rtn.bytesout += local_sz [loc];
+rtn.filesout += 1;
+entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, local_ftype [loc], local_sz [loc]);
 ++itemcount;
 comp->len += entrylen;
 strcat (comp->p, temp2);
@@ -255,19 +264,21 @@ strcat (comp->p, temp2);
 
 if (local_mtime [loc] < remote_mtime [rem])
 {
-	action = get;
-	rtn.bytesin += remote_sz [rem];
-	rtn.filesin += 1;
-	entrylen = sprintf (temp2, "%s%s\n", action, temp1);
+action = get;
+rtn.bytesin += remote_sz [rem];
+rtn.filesin += 1;
+entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, remote_ftype [rem], remote_sz [rem]);
 ++itemcount;
 comp->len += entrylen;
 strcat (comp->p, temp2);
 
 } // if remote is newer
 
+//char local_ftype [local.procint];
+//char remote_ftype [remote.procint];
 
-
-
+//size_t local_sz [local.procint];
+//size_t remote_sz [remote.procint];
 break;    
 }   // if !strcmp
 } // if len ==
@@ -280,20 +291,19 @@ for (int i = 0; i < local.procint; ++i)
 {
 if (local_stat [i] == 'u')
 {
-	action = send;
-	rtn.bytesout += local_sz [i];
-	rtn.filesout += 1;
+action = send;
+rtn.bytesout += local_sz [i];
+rtn.filesout += 1;
 
 dftype = getnext (local.p, ';', local_start [i], local.len);
 
 midstr (local.p, temp1, local_start [i], dftype);
 
-entrylen = sprintf (temp2, "%s%s\n", action, temp1);
+entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, local_ftype [i], local_sz [i]);
 
 comp->len += entrylen;
 strcat (comp->p, temp2);
 ++itemcount;
-	
 } // file not yet added
 } // for local list
 
@@ -302,18 +312,16 @@ for (int i = 0; i < remote.procint; ++i)
 {
 if (remote_stat [i] == 'u')
 {
-		
-	action = get;
-	rtn.bytesin += remote_sz [i];
-	rtn.filesin += 1;
+action = get;
+rtn.bytesin += remote_sz [i];
+rtn.filesin += 1;
 
+//get and set path again
 dftype = getnext (remote.p, ';', remote_start [i], remote.len);
-
 midstr (remote.p, temp1, remote_start [i], dftype);
 
-entrylen = sprintf (temp2, "%s%s\n", action, temp1);
-
-
+//process entry string to be added
+entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, remote_ftype [i], remote_sz [i]);
 
 comp->len += entrylen;
 strcat (comp->p, temp2);
@@ -324,7 +332,7 @@ strcat (comp->p, temp2);
 } // for remote list
 
 
-loggingf (200, "%s\n", comp->p);
+loggingf (100, "%s\n", comp->p);
 comp->procint = itemcount;
 return (rtn);
 
@@ -420,11 +428,6 @@ strcat (list->p, entry);
 
 list->len += entrylen;
 
-
-if (debug)
-    printf ("len: %d, %s\n", list->len, entry);
-
-
 } // while dir entries
 closedir (dp);
 
@@ -441,32 +444,20 @@ d1 = getnext (list->p, ';', list->procint, list->len);
 if (d1 == -1)
 { list->procint = itemcount; return (itemcount); }
 
-//{loop = 0; break;}
-    
-    
 ftype = list->p[d1 + 1];
-
 
 if (ftype == 'd')
 {
 midstr (list->p, subdir, list->procint, d1);
 
-
-//printf ("proc: %d, d1: %d, file name: %s, type: %c\n", list->procint, d1, path, ftype);
-
-
 d2 = getnext (list->p, (char) 10, d1, list->len);
 list->procint = d2 + 1;  
 
-
 break;
-
-
 
 //loop = 0;
     
 } // if dir
-
 
 d2 = getnext (list->p, (char) 10, d1, list->len);
 list->procint = d2 + 1;  

@@ -6,25 +6,66 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
-//#ifdef __linux__
-//#include <linux/sockios.h>
-//#endif
-
 #include <fcntl.h>
 //#include <signal.h>
 //#include <sys/epoll.h>
 //#include <sys/ioctl.h>
 #include <unistd.h>
 
-//#define _XOPEN_SOURCE 700
-//#include <sys/types.h>
-//#include <dirent.h>
-//#include <sys/sendfile.h>
-//#include <sys/stat.h>
-//#include <sys/types.h>
-#include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
+#include "socket.h"
+
+#include "libmemory.h"
 
 const int timeout = 3;
+
+int sendfile (const char *path, const int fd)
+{
+int locfd = open (path, O_RDONLY);
+if (locfd < -1)
+    return -1;
+
+struct stat finfo;
+fstat (locfd, &finfo);
+
+size_t read_progress = 0;
+
+size_t write_progress = 0;
+
+//finfo.st_size
+
+int rtn;
+
+
+char c_fbuffer [string_sz];
+struct buffer_data fbuff;
+fbuff.p = c_fbuffer;
+fbuff.max = string_sz;
+
+
+//while (read_progress < finfo.st_size)
+  // first loop  
+
+fbuff.len = read (locfd, fbuff.p, fbuff.max);
+read_progress += fbuff.len;
+
+
+
+
+rtn = sock_write (fd, fbuff.p, fbuff.len);
+
+
+
+
+} // sendfile
+
+int getfile (const char *path, const int fd)
+{
+
+}// getfile
 
 
 
@@ -152,9 +193,14 @@ if (deadtime >= timeout)
 	{return -1;}
 
 } // if -1
+
+	
+	
 } // while
 
-
+if (debug == 500)
+		loggingf (500, "%.*s", len, buffer);
+	
 return len;
 } // sock_read
 

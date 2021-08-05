@@ -13,6 +13,8 @@ int loggingf (const int level, const char *format, ...)
 if (!level)
 	return (0);
 
+if (!(level == debug || level <= 2))
+	return (0);
 va_list ap;
 
 va_start (ap, format);
@@ -40,25 +42,26 @@ if (format [fplace] == '%')
 {
 type = format [fplace + 1];
 
-/*
-if (type == '.')
-{
-	int specify_len = 1;
-	
-	
-} // if type == .
-*/
+
+if (type == '.') { specify_len = 1; type = format [fplace + 3];}
 
 if (type == 's')
 {
+if (specify_len)
+{
+d = va_arg(ap, int);
 s = va_arg(ap, char *);
+len += sprintf (entry + len, "%.*s", d, s);
+fplace += 3;
+} // if spec_len	
 
-//int slen = strlen (s);
-
+if (!specify_len)
+{
+s = va_arg(ap, char *);
 len += sprintf (entry + len, "%s", s);
 ++fplace;
 
-
+} // if ! specify_len
 } // if s
     
 if (type == 'd')

@@ -67,7 +67,7 @@ minor[count] = major[start];
 ++count;
 }
 minor[count] = 0;
-return (count - 1);
+return (count);
 } // end midstr
 
 int search (const char *main, const char *minor, int start, int end)

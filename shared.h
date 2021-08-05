@@ -1,7 +1,3 @@
-#include <dirent.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
 
 struct comp_data make_comparison (struct buffer_data *comp, const struct buffer_data remote, const struct buffer_data local);
 
