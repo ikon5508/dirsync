@@ -122,6 +122,7 @@ sock_setnonblock (sockfd);
 
 sock_write (sockfd, "<getlist>", 0);
 
+// 1 getlist sent
 loggingf (100, "sent: <getlist>\n");
 
 char inb[maxbuffer];
@@ -146,11 +147,10 @@ local_list.max = maxbuffer;
 
 make_listfiles (&local_list, basepath);
 
-loggingf (100, "local file count: %d\n", local_list.procint);
+// print local list
+loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
 
 inbuff.len = sock_read (sockfd, inbuff.p, inbuff.max);
-
-loggingf (100, "remote list recieved (inbuff.p):\n%s\n", inbuff.p);
 
 int d1, d2;
 int session = 0;
@@ -168,19 +168,10 @@ if (!session)
 {
 remote_list.len = midstr (inbuff.p, remote_list.p, d1 + 4, inbuff.len);
 
-loggingf (100, "incomplete reciever <multi-read>\n%s\n", inbuff.p);
-
-
+// search for > so we can pick out the remote itemcount
 d2 = getnext (inbuff.p, '>', d1, inbuff.len);
-
-loggingf (100, "midstr feed: %d : %d\n", d1, d2);
-
 midstr (inbuff.p, temp, d1 + 1, d2);
 remote_list.procint = atoi (temp);
-
-// put remote itemcount into logging
-loggingf (100, "remote item count is: [%s]:[%d]\n", temp, remote_list.procint);
-	
 
 d2 = -1;
 while (d2 == -1)
@@ -190,49 +181,34 @@ inbuff.len = sock_read (sockfd, inbuff.p, inbuff.max);
 strcat (remote_list.p, inbuff.p);
 remote_list.len += inbuff.len;
 
-loggingf (100, "added: %s\n", inbuff.p);
+//loggingf (100, "added: %s\n", inbuff.p);
 
 d2 = search (inbuff.p, "<endlist>", 0, inbuff.len);
 } // while   
-//remote_list.len = strlen (remote_list.p);
-loggingf (100, "calc len: %d, strlen: %d\n", remote_list.len, strlen (remote_list.p));
+
 } // if ! session listcomplete
 
 if (session) 
 {
-loggingf (100, "reciever complete <single read>\n");
+//loggingf (100, "reciever complete <single read>\n");
 remote_list.len = midstr (inbuff.p, remote_list.p, d1 + 4, inbuff.len - 10);
 
+//search for next > so we can pickout the itemcount
 d2 = getnext (inbuff.p, '>', d1, inbuff.len);
-
-loggingf (100, "midstr feed: %d : %d\n", d1, d2);
-
 midstr (inbuff.p, temp, d1 + 1, d2);
 remote_list.procint = atoi (temp);
-
-// put remote itemcount into logging
-//loggingf (100, "remote item count is: [%s]:[%d]\n", temp, remote_list.procint);
-	
-
 } // if session
 
 
+// multipart reciever will still include <endlist>
+loggingf (100, "session: %d\n%s\n", session, remote_list.p);
+// multipart reciever will still include <endlist>
 
-loggingf (100, "prep compare remote count: %d\n%s\n", remote_list.procint, remote_list.p);
-
-
-
-	
 struct comp_data compdata = make_comparison (&comp_list, remote_list, local_list);
 
 loggingf (1, "need to get: %d files : %d bytes\nneed to send: %d files: %d bytes\n", compdata.filesin, compdata.bytesin, compdata.filesout, compdata.bytesout);
 
-
-//exit (0);
-//printf ("%s\n", comp_list.p);
-
-
-//process_complist (comp_list, basepath, sockfd);
+process_complist (comp_list, basepath, sockfd);
 //exit (0);
 sock_write (sockfd, "<FIN>", 0);
 

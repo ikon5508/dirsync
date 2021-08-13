@@ -102,6 +102,7 @@ local_list.max = maxbuffer;
 
 make_listfiles (&local_list, basepath);
 
+// 1 print local list to log if level at 100
 loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
 
 goto skip;
@@ -109,8 +110,6 @@ goto skip;
 while (outerloop)
 {
 skip:
-
-printf ("inner loop");
 
 connfd = accept(sv_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
 
@@ -125,14 +124,10 @@ while (session)
 inbuff.len = sock_read (connfd, inbuff.p, inbuff.max);
 
 if (inbuff.len > 0)
-{
-inbuff.p[inbuff.len] = 0;
-//loggingf (100, "\n..%d..\nreciever\n%s\n...\n", inbuff.len, inbuff.p);
-time (&basetime);
-} // if len > 0
+	time (&basetime);
 
 if (inbuff.len == -1)
-{loggingf (1, "timeout = -1\n"); break;}
+{loggingf (1, "server timeout = -1\n"); break;}
 
 if (inbuff.len == 0)
 {
@@ -142,7 +137,6 @@ time (&deadtime);
 // if client stalls boot connection
 if (deadtime  >= basetime + 6)
 {loggingf (1, "client stalled\n"); break;}
-	
 }
 
 
@@ -156,15 +150,17 @@ sock_write (connfd, header, 0);
 sock_write (connfd, local_list.p , local_list.len);
 sock_write (connfd, "<endlist>" , 0);
 
-loggingf (100, "local file list sent to remote host\n%s\n", local_list.p);
+// 2 sent local list to remote host
+//loggingf (100, "local file list sent to remote host\n%s\n", local_list.p);
 
 } // if <getlist>
 
 if (search (inbuff.p, "<FIN>", 0, inbuff.len)  > -1)
-{loggingf (1, "FIN RECIEVED: %s\n", inbuff.p); break;}
+	{loggingf (1, "FIN RECIEVED\n"); break;}
 
+if (search (inbuff.p, "<sendfile=", 0, inbuff.len)  > -1)
+	filereciever (&inbuff, basepath, connfd);
 
-loggingf (100, "session: %d\n", session);
 
 
 } // while session

@@ -18,8 +18,24 @@
 const int debug = 100;
 
 
+int filereciever (struct buffer_data *inbuff, const char *basepath, const int connfd)
+{
+
+loggingf (1, "cheers, file reciever\n");
+
+
+}
+
+
+
+
+
+
+
 void process_complist (const struct buffer_data comp, const char *basepath, const int fd)
 {
+
+loggingf (1, "process comp list\n");
 
 int start_line;
 int end_line = -1;
@@ -59,10 +75,15 @@ action = comp.p[start_line];
 
 sprintf (fullpath, "%s/%s", basepath, path);
 
+
+loggingf (100, "path: %s, action: %c: size: %s\n", path, action, size);
+
 if (action == 's')
 {
 sprintf (entry, "<sendfile=%s;%c;%s>", path, ftype, size);
 sock_write (fd, entry, 0);
+loggingf (1, "%s\n", entry);
+
 sendfile (fullpath, fd); 
 } // if s
 

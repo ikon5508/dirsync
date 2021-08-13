@@ -2,8 +2,6 @@
 #include "libmemory.h"
 
 
-const int debug = 100;
-
 
 int fd = 0;
 
@@ -19,18 +17,12 @@ va_list ap;
 
 va_start (ap, format);
 
-
-
 int formatlen = strlen (format);
 char type;
 int specify_len = 0;
 char entry [maxbuffer] = "";
-//char part [maxbuffer] = "";
 
 int len = 0;
-
-
-
 int d;
 char c;
 char *s;
@@ -41,8 +33,7 @@ for (int fplace = 0; fplace < formatlen; ++fplace)
 if (format [fplace] == '%')
 {
 type = format [fplace + 1];
-
-
+// if length is specified as %.*s
 if (type == '.') { specify_len = 1; type = format [fplace + 3];}
 
 if (type == 's')
