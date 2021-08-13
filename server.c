@@ -16,16 +16,24 @@ socklen_t addrlen = sizeof(address);
 if (debug)
 {
 char outstr[200];
+
 time_t t;
 struct tm *tmp;
 t = time(NULL);
 tmp = localtime(&t);
 
-
 //strftime(outstr, 200, "./log/server-%c.txt", tmp);
-strcpy (outstr, "./log/server.txt");
+
+
 system ("cd log; rm serv*");
+
+strcpy (outstr, "./log/server-log.txt");
 init_log (outstr);
+
+strcpy (outstr, "./log/server-backdoor.txt");
+
+init_sockbackdoor (outstr);
+
 }// if debug
 
 int portno = 9999;

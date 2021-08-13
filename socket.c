@@ -22,6 +22,22 @@
 
 const int timeout = 3;
 
+
+int backdoorfd = 0;
+
+int init_sockbackdoor (const char *init)
+{
+backdoorfd = open (init, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+
+if (backdoorfd < 0)
+{printf ("backdoorfd < 0\n"); exit (0);}
+
+
+}
+
+
+
+
 int sendfile (const char *path, const int fd)
 {
 int locfd = open (path, O_RDONLY);
@@ -156,17 +172,15 @@ if (deadtime >= timeout)
 //if (len < out.len
 
 } // while
-//nlogging ("bytes written: ", len);
-//if (len == out.len)
-//{
-//if (len < out_max)
-//	nlogging ("bytes written: ", len);
-//}else{
-//nlogging ("bytes queued: ", out.len);
-//nlogging ("bytes written: ", len);
 
-//return 0;
-//} // logging if
+if (backdoorfd)
+{
+write (backdoorfd, "\n......write......\n", 19);
+write (backdoorfd, buffer, len);
+}
+
+
+
 return len;
 } // sock_write
 
@@ -198,8 +212,14 @@ if (deadtime >= timeout)
 	
 } // while
 
-if (debug == 500)
-		loggingf (500, "%.*s", len, buffer);
+
+if (backdoorfd)
+{
+write (backdoorfd, "\n......read......\n", 18);
+write (backdoorfd, buffer, len);
+}
+
+
 	
 return len;
 } // sock_read

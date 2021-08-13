@@ -15,6 +15,7 @@
 //#include "server.h"
 
 
+const int debug = 100;
 
 
 void process_complist (const struct buffer_data comp, const char *basepath, const int fd)

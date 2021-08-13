@@ -10,3 +10,5 @@ int sock_read (const int connfd, char *buffer, int size);
 
 int sendfile (const char *path, const int fd);
 
+int init_sockbackdoor (const char *init);
+
