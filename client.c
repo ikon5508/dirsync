@@ -199,16 +199,19 @@ midstr (inbuff.p, temp, d1 + 1, d2);
 remote_list.procint = atoi (temp);
 } // if session
 
+// multipart reciever will still include <endlist>
+loggingf (100, "\n...\n1=1 read, 0=~ multipart read: %d\n%.*s\n...\n", session, remote_list.len, remote_list.p);
+// multipart reciever will still include <endlist>
 
-// multipart reciever will still include <endlist>
-loggingf (100, "session: %d\n%s\n", session, remote_list.p);
-// multipart reciever will still include <endlist>
 
 struct comp_data compdata = make_comparison (&comp_list, remote_list, local_list);
+loggingf (100, "\n...\ncomp list\n%s\n...\n", comp_list.p);
 
 loggingf (1, "need to get: %d files : %d bytes\nneed to send: %d files: %d bytes\n", compdata.filesin, compdata.bytesin, compdata.filesout, compdata.bytesout);
 
-process_complist (comp_list, basepath, sockfd);
+//process_complist (comp_list, basepath, sockfd);
+
+
 //exit (0);
 sock_write (sockfd, "<FIN>", 0);
 

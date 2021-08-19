@@ -14,8 +14,12 @@
 //#include "client.h"
 //#include "server.h"
 
-
-const int debug = 100;
+/*
+1 standard debug file(s)
+100 detailed main () info
+200 make_comparison info
+*/
+const int debug = 200;
 
 
 int filereciever (struct buffer_data *inbuff, const char *basepath, const int connfd)
@@ -25,17 +29,8 @@ loggingf (1, "cheers, file reciever\n");
 
 
 }
-
-
-
-
-
-
-
 void process_complist (const struct buffer_data comp, const char *basepath, const int fd)
 {
-
-loggingf (1, "process comp list\n");
 
 int start_line;
 int end_line = -1;
@@ -58,6 +53,8 @@ int itemcount = 0;
 while (itemcount < comp.procint)
 {
 //"%s%s;%c;%d\n", action, temp1, local_ftype [loc], local_sz [loc]);
+//loggingf (100, "itemcount: %d\n", itemcount);
+
 start_line = end_line + 1;
 end_line = getnext (comp.p, (char) 10, start_line, comp.len);
 
@@ -76,8 +73,8 @@ action = comp.p[start_line];
 sprintf (fullpath, "%s/%s", basepath, path);
 
 
-loggingf (100, "path: %s, action: %c: size: %s\n", path, action, size);
-
+loggingf (100, "%d: path: (%s), action: (%c): size: (%s)\n",itemcount, path, action, size);
+/*
 if (action == 's')
 {
 sprintf (entry, "<sendfile=%s;%c;%s>", path, ftype, size);
@@ -86,7 +83,7 @@ loggingf (1, "%s\n", entry);
 
 sendfile (fullpath, fd); 
 } // if s
-
+*/
 // not stragetigized yet
 /*
 if (action == 'g')
@@ -99,9 +96,6 @@ getfile (fullpath, fd);
 // fullpath !!!
 } // if g
 */
-
-
-loggingf (100, "%d: action: %c, path: %s\n", itemcount, action, path);
 
 }	// while
 } // process process_complist
@@ -156,6 +150,9 @@ for (int i = 0; i < remote.procint; ++i)
 const char *action;
 const char *send = "snd:";
 const char *get = "get:";
+
+loggingf (200, "itemcount local: %d, remote: %d\n", local.procint, remote.procint);
+
 
 // local iteration loop
 while (itemcount < local.procint)
@@ -240,10 +237,35 @@ remote_start [itemcount] = start_path;
 
 comp->len = 0;
 itemcount = 0;
+
+
+
+loggingf (200, "value check, first pass \n");
+loggingf (200, "local ftype\n");
+for (int i = 0; i < local.procint; ++i)
+	loggingf (200, "%d: %c\n", i, local_ftype [i]);
+
+loggingf (200, "local fsize\n");
+for (int i = 0; i < local.procint; ++i)
+	loggingf (200, "%d: %d\n", i, local_sz [i]);
+
+
+loggingf (200, "remote ftype\n");
+for (int i = 0; i < remote.procint; ++i)
+	loggingf (200, "%d: %c\n", i, remote_ftype [i]);
+
+loggingf (200, "remote fsize\n");
+for (int i = 0; i < remote.procint; ++i)
+	loggingf (200, "%d: %d\n", i, remote_sz [i]);
+
+
+
+
 // actual comparison loops
 // do local against remote first
 // then remote against local
 
+/*
 for (int loc = 0; loc < local.procint; ++loc)
 {
 for (int rem = 0; rem < remote.procint; ++rem)
@@ -268,9 +290,8 @@ local_stat [loc] = 'c';
 remote_stat [rem] = 'c';
 
 if (local_mtime [loc] == remote_mtime [rem])
-{    
-	continue;
-} // if mtime is same
+    continue;
+
 
 if (local_mtime [loc] > remote_mtime [rem])
 {
@@ -293,6 +314,9 @@ entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, remote_ftype [rem], re
 ++itemcount;
 comp->len += entrylen;
 strcat (comp->p, temp2);
+
+printf (temp2, "%s%s;%c;%d\n", action, temp1, remote_ftype [rem], remote_sz [rem]);
+
 
 } // if remote is newer
 
@@ -328,6 +352,39 @@ strcat (comp->p, temp2);
 ++itemcount;
 } // file not yet added
 } // for local list
+*/
+
+
+// refit for local
+// check for unchecked local files
+for (int i = 0; i < local.procint; ++i)
+{
+if (local_stat [i] == 'u')
+{
+action = send;
+rtn.bytesout += local_sz [i];
+rtn.filesout += 1;
+
+//get and set path again
+dftype = getnext (local.p, ';', local_start [i], local.len);
+midstr (local.p, temp1, local_start [i], dftype);
+
+//process entry string to be added
+entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, local_ftype [i], local_sz [i]);
+
+loggingf (200, "entry-data: check unchecked local: \n%s%s;%c;%d\n", action, temp1, local_ftype [i], local_sz [i]);
+
+
+comp->len += entrylen;
+strcat (comp->p, temp2);
+
+++itemcount;	
+} // file not yet added
+
+} // for local list
+// refit for blocal
+
+
 
 // check for unchecked remote files
 for (int i = 0; i < remote.procint; ++i)
@@ -345,16 +402,39 @@ midstr (remote.p, temp1, remote_start [i], dftype);
 //process entry string to be added
 entrylen = sprintf (temp2, "%s%s;%c;%d\n", action, temp1, remote_ftype [i], remote_sz [i]);
 
+loggingf (200, "entry-data: check unchecked remote: \n%s%s;%c;%d\n", action, temp1, remote_ftype [i], remote_sz [i]);
+
+
+
 comp->len += entrylen;
 strcat (comp->p, temp2);
 
 ++itemcount;	
 } // file not yet added
 
-} // for remote list
+} // for remote list unchecked
+
+loggingf (200, "value check, 2nd pass \n");
+loggingf (200, "local ftype\n");
+for (int i = 0; i < local.procint; ++i)
+	loggingf (200, "%d: %c\n", i, local_ftype [i]);
+
+loggingf (200, "local fsize\n");
+for (int i = 0; i < local.procint; ++i)
+	loggingf (200, "%d: %d\n", i, local_sz [i]);
 
 
-loggingf (100, "%s\n", comp->p);
+loggingf (200, "remote ftype\n");
+for (int i = 0; i < remote.procint; ++i)
+	loggingf (200, "%d: %c\n", i, remote_ftype [i]);
+
+loggingf (200, "remote fsize\n");
+for (int i = 0; i < remote.procint; ++i)
+	loggingf (200, "%d: %d\n", i, remote_sz [i]);
+
+
+
+loggingf (200, "\n...\ncomp list\n%.*s\n...\n", comp->len, comp->p);
 comp->procint = itemcount;
 return (rtn);
 

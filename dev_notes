@@ -1,0 +1,36 @@
+7-11
+need to put in delimeter info into make file lists
+
+
+
+
+
+7 -3 
+prelim assesment, note taking begin
+
+successfully generates, sends, file list
+
+server can recieve but does not process
+
+----------------------------
+
+change buffer name, local_list, and implement remote_list
+--- nned to implment remote recieve
+
+-- done --remove potential extra / from dir entries (accomodate ending / from argv)
+
+fix instr func
+sock_read / write
+
+-done--- add listing function to server....
+implement comparison algorithm
+make protected.txt feature
+
+8-18
+move to clientless model by integrating CLI client into the server
+for the purpose of implementing html/javascript client and making better 
+sandbox testing 
+
+rename server.c, add client main, add shared.c
+
+fix on make comparison algorithm

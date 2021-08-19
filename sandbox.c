@@ -9,6 +9,17 @@
 
 int main (void)
 {
+char *s = "this is a cool string";
+
+char new [100];
+memmove (new, s, 5);
+
+printf ("%s\n", s);
+	
+	
+	
+	
+	exit (0);
 init_log ("./log/tlog.txt");
 
 char rmlist[maxbuffer];
