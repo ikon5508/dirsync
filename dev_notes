@@ -26,11 +26,14 @@ sock_read / write
 implement comparison algorithm
 make protected.txt feature
 
+------------------------
 8-18
 move to clientless model by integrating CLI client into the server
 for the purpose of implementing html/javascript client and making better 
 sandbox testing 
 
-rename server.c, add client main, add shared.c
-
 fix on make comparison algorithm
+
+implement args debug options
+fix all args options
+

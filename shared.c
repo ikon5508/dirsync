@@ -16,11 +16,13 @@
 
 /*
 1 standard debug file(s)
-100 detailed main () info
+100 detailed server / client () info
 200 make_comparison info
 */
-const int debug = 200;
 
+//replaced with args
+//const int debug = 200;
+//replaced with args
 
 int filereciever (struct buffer_data *inbuff, const char *basepath, const int connfd)
 {

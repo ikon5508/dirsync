@@ -4,12 +4,9 @@
 #include "logging.h"
 #include "shared.h"
 
+#include "main.h"
 
-//int init_buffer (struct buffer_data *buffer, const int size);
-
-
-
-int main (int argc, char **argv)
+int client_mode (const struct arg_data args)
 {
 
 struct sockaddr_in serv_addr;
@@ -41,49 +38,6 @@ init_sockbackdoor (outstr);
 
 }// if debug
 
-
-for (int i = 1; i < argc; ++i)
-{
-int argvlen = strlen(argv[i]);
-
-    //printf ("#%d: %s\n", i, argv[i]);   
-    int d1, d2;
-    // set port# if given
-    d1 = atoi (argv[i]);
-    d2 = getnext (argv[i], '.', 1, argvlen);
-    if (d1 > 0 && d2 == -1)
-    {portno = d1; loggingf (1, "portno: %d\n", portno);}
-    
-//set IP if given
-    d1 = getnext (argv[i], '.', 1, argvlen);
-    if (d1 > 0)
-    {
-        d2 = getnext (argv[i], '.', (d1 + 1), argvlen);
-            if (d2 > 0)
-            {
-              server = gethostbyname(argv[i]);
-              loggingf (1, "host set: %s\n", argv[i]);
-            hostset = 1;
-                
-            }
-    }
-        
-d1 = getnext (argv[i], '/', 0, argvlen);
-        if (d1 > -1)
-        {
-        if (argv[i][argvlen - 1] == '/')
-        {
-            midstr (argv[i], basepath, 0, argvlen - 1);
-            
-        }else{
-        
-        strcpy (basepath, argv[i]);
-         
-        }
-        
-         loggingf (1, "base path set: %s\n", basepath);   
-        }
-} // for
     
 
 if (!hostset)

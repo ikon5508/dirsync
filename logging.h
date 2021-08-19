@@ -10,7 +10,7 @@
 #ifndef logging_h
 #define logging_h
 
-extern const int debug;
+extern int debug;
 
 int init_log (const char *path);
 int loggingf (const int level, const char *format, ...);

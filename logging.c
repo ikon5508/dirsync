@@ -1,7 +1,7 @@
 #include "logging.h"
 #include "libmemory.h"
 
-
+int debug = 0;
 
 int fd = 0;
 

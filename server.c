@@ -6,8 +6,9 @@
 
 #include "shared.h"
 
+#include "main.h"
 
-int main (int argc, char **argv)
+int server_mode (struct arg_data args)
 {
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
@@ -40,46 +41,16 @@ int portno = 9999;
 char basepath[200] = ".";
 int n;
 
-
 int outerloop = 0;
 
 int connfd;
 
-// process command line args
-for (int i = 1; i < argc; ++i)
-{
-int argvlen = strlen(argv[i]);
 
-if (!strcmp (argv[i], "-loop"))
-{ loggingf (1, "outer loop set\n"); outerloop = 1; continue; }
+// re iterate command line args
 
-    int d1, d2;
-    // set port# if given
-    d1 = atoi (argv[i]);
-    d2 = getnext (argv[i], '.', 1, argvlen);
-    if (d1 > 0 && d2 == -1)
-    portno = d1;
-    
 
-        
-d1 = getnext (argv[i], '/', 0, argvlen);
-        if (d1 > -1)
-        {
-        if (argv[i][argvlen - 1] == '/')
-        {
-            midstr (argv[i], basepath, 0, argvlen - 1);
-            
-        }else{
-        
-        strcpy (basepath, argv[i]);
-         
-        } // if / end
-        
-        } // if / chech
-            
 
-        
-} // for
+
 
 loggingf (1, "base path set: %s\n", basepath);   
 loggingf (1, "portno: %d\n", portno);

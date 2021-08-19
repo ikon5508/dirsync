@@ -15,6 +15,5 @@ void process_complist (const struct buffer_data comp,const char *basepath, const
 
 int filereciever (struct buffer_data *inbuff, const char *basepath, const int connfd);
 
-extern const int debug;
 
 
