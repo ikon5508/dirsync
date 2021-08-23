@@ -1,11 +1,12 @@
 #include "libmemory.h"
 
 struct arg_data {
-int loop;
+char loop;
+char backdoor;
 
 enum mode_t
 {
-none, server, client, sandbox
+server, client, sandbox
 }mode;
 
 char host [25];

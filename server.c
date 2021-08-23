@@ -1,5 +1,15 @@
-#include "server.h"
-//#include "libmemory.h"
+#include <stdio.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "libmemory.h"
+
 #include "socket.h"
 
 #include "logging.h"
@@ -8,53 +18,38 @@
 
 #include "main.h"
 
-int server_mode (struct arg_data args)
+int server_mode (const struct arg_data args)
 {
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
-
-if (debug)
-{
+/*
 char outstr[200];
-
 time_t t;
 struct tm *tmp;
 t = time(NULL);
 tmp = localtime(&t);
 
 //strftime(outstr, 200, "./log/server-%c.txt", tmp);
+*/
 
 
+if (debug)
+{
 system ("cd log; rm serv*");
+init_log ("./log/server-log.txt");
 
-strcpy (outstr, "./log/server-log.txt");
-init_log (outstr);
-
-strcpy (outstr, "./log/server-backdoor.txt");
-
-init_sockbackdoor (outstr);
+if (args.backdoor)
+	init_sockbackdoor ("./log/server-backdoor.txt");
 
 }// if debug
 
-int portno = 9999;
-char basepath[200] = ".";
-int n;
-
-int outerloop = 0;
 
 int connfd;
 
-
-// re iterate command line args
-
-
-
-
-
-loggingf (1, "base path set: %s\n", basepath);   
-loggingf (1, "portno: %d\n", portno);
-int sv_fd = prepsocket(portno);
+loggingf (1, "base path set: %s\n", args.path);   
+loggingf (1, "portno: %d\n", args.port);
+int sv_fd = prepsocket(args.port);
 
 char inb[maxbuffer];
 struct buffer_data inbuff;
@@ -71,14 +66,14 @@ struct buffer_data local_list;
 local_list.p = locallist;
 local_list.max = maxbuffer;
 
-make_listfiles (&local_list, basepath);
+make_listfiles (&local_list, args.path);
 
 // 1 print local list to log if level at 100
 loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
 
 goto skip;
 
-while (outerloop)
+while (args.loop)
 {
 skip:
 
@@ -121,16 +116,13 @@ sock_write (connfd, header, 0);
 sock_write (connfd, local_list.p , local_list.len);
 sock_write (connfd, "<endlist>" , 0);
 
-// 2 sent local list to remote host
-//loggingf (100, "local file list sent to remote host\n%s\n", local_list.p);
-
 } // if <getlist>
 
 if (search (inbuff.p, "<FIN>", 0, inbuff.len)  > -1)
 	{loggingf (1, "FIN RECIEVED\n"); break;}
 
 if (search (inbuff.p, "<sendfile=", 0, inbuff.len)  > -1)
-	filereciever (&inbuff, basepath, connfd);
+	filereciever (&inbuff, args.path, connfd);
 
 
 

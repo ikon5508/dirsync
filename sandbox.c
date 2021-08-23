@@ -6,8 +6,9 @@
 
 #include "shared.h"
 
+#include "main.h"
 
-int main (void)
+int sandbox_mode (const struct arg_data args)
 {
 char *s = "this is a cool string";
 

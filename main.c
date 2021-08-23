@@ -1,22 +1,25 @@
 
-/*
- -loop
- IP
- Port
- Path
- 
- 
- */
 #include <string.h>
 #include "libmemory.h"
 #include "main.h"
 #include "logging.h"
+#include "server.h"
+#include "client.h"
 
 int main (int argc, char **argv)
 {
 
 struct arg_data args;
 memset (&args, 0, sizeof (args));
+
+//set default port and directory
+args.port = 9999;
+args.path [0] = '.';
+
+/* enable debugging data by default */
+args.backdoor = 1;
+debug = 100;
+// enable debugging data by default
 
 // cycle through command line args
 for (int i = 1; i < argc; ++i)
@@ -25,6 +28,9 @@ int argvlen = strlen(argv[i]);
 
 if (!strcmp (argv[i], "-loop"))
 { args.loop = 1; continue; }
+
+if (!strcmp (argv[i], "-backdoor"))
+{ args.backdoor = 1; continue; }
 
 if (!strcmp (argv[i], "-sandbox"))
 { args.mode = sandbox; continue; }
@@ -68,11 +74,15 @@ strcpy (args.path, argv[i]);
             
 } // for
 
-printf ("debug: %d\n", debug);
-printf ("port: %d\n", args.port);
-printf ("path: %s\n", args.path);
-printf ("host: %s\n", args.host);
 
-printf ("mode: %d\n", args.mode);
+if (args.mode == server)
+	server_mode (args);
 
+if (args.mode == client)
+	client_mode (args);
+
+//if (args.mode == sandbox)
+
+
+	
 } // main

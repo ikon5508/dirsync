@@ -1,4 +1,22 @@
-#include "client.h"
+
+#include <stdio.h>
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
+#include <string.h>
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+
+
 #include "libmemory.h"
 #include "socket.h"
 #include "logging.h"
@@ -11,36 +29,29 @@ int client_mode (const struct arg_data args)
 
 struct sockaddr_in serv_addr;
 struct hostent *server = NULL;
-int hostset = 0;
-int portno = 9999;
-char basepath[200] = ".";
-int n;
 
-if (debug)
-{
+/*
 char outstr[200];
 time_t t;
 struct tm *tmp;
 t = time(NULL);
 tmp = localtime(&t);
 //strftime(outstr, 200, "./log/client-%c.txt", tmp);
+*/
 
-
+if (debug)
+{
 system ("cd log; rm cli*");
+init_log ("./log/client-log.txt");
 
-strcpy (outstr, "./log/client-log.txt");
-init_log (outstr);
-
-strcpy (outstr, "./log/client-backdoor.txt");
-
-init_sockbackdoor (outstr);
+if (args.backdoor)
+	init_sockbackdoor ("./log/client-backdoor.txt");
 
 
 }// if debug
 
-    
 
-if (!hostset)
+if (args.host [0] == 0)
 {
 server = gethostbyname("localhost"); // get hostbyname
 //printf ("host set to localhost\n");
@@ -65,7 +76,7 @@ bzero((char *) &serv_addr, sizeof(serv_addr));
 
  bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
     
- serv_addr.sin_port = htons(portno);
+ serv_addr.sin_port = htons(args.port);
 
 
 if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
@@ -99,7 +110,7 @@ struct buffer_data local_list;
 local_list.p = locallist;
 local_list.max = maxbuffer;
 
-make_listfiles (&local_list, basepath);
+make_listfiles (&local_list, args.path);
 
 // print local list
 loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
