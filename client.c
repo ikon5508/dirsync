@@ -26,18 +26,10 @@
 
 int client_mode (const struct arg_data args)
 {
+loggingf (1, "client init\n");
 
 struct sockaddr_in serv_addr;
 struct hostent *server = NULL;
-
-/*
-char outstr[200];
-time_t t;
-struct tm *tmp;
-t = time(NULL);
-tmp = localtime(&t);
-//strftime(outstr, 200, "./log/client-%c.txt", tmp);
-*/
 
 if (debug)
 {
@@ -46,29 +38,25 @@ init_log ("./log/client-log.txt");
 
 if (args.backdoor)
 	init_sockbackdoor ("./log/client-backdoor.txt");
-
-
 }// if debug
 
 
 if (args.host [0] == 0)
 {
+loggingf (100, "set host to local host\n");
 server = gethostbyname("localhost"); // get hostbyname
 //printf ("host set to localhost\n");
-    
-if (server == NULL) {
-    
-    fprintf(stderr,"ERROR, no such host\n");
-    exit(0);
-    }
+}else{
+loggingf (100, "set host to: %s\n", args.host);
+server = gethostbyname("localhost"); // get hostbyname
 } // if hostset
 
+if (server == NULL) { fprintf(stderr,"ERROR, no such host\n"); exit(0); }
 
 int sockfd;
 
 sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) 
-        perror("ERROR opening socket");
+    if (sockfd < 0) perror("ERROR opening socket");
 
 
 bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -85,15 +73,46 @@ if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
 
 sock_setnonblock (sockfd);
 
-sock_write (sockfd, "<getlist>", 0);
-
-// 1 getlist sent
-loggingf (100, "sent: <getlist>\n");
-
+// init buffer for reading from socket
 char inb[maxbuffer];
 struct buffer_data inbuff;
 inbuff.p = inb;
 inbuff.max = maxbuffer;
+
+
+// does path lead to a dir, or a single file
+struct stat finfo;
+if (stat (args.path, &finfo) == -1)
+    { loggingf (1, "(client) Invalid path\n"); exit (0); }
+
+if (S_ISREG(finfo.st_mode)) // is file
+{
+char entry [string_sz];
+char fname [string_sz];
+
+int pathlen = strlen (args.path);
+
+int d1 = getlast (args.path, '/', pathlen);
+midstr (args.path, fname, d1 + 1, pathlen);
+
+//loggingf (100, "full path: |%s| filename: d1: %d, len: %d: %s\n", args.path, d1, pathlen, fname);
+
+sprintf (entry, "<sendfile=%s;%d>", fname, finfo.st_size);
+
+sock_write (sockfd, entry, 0);
+loggingf (100, "%s\n", entry);
+
+sendfile (args.path, sockfd);
+
+} // if path is to single file
+
+
+/*
+if (S_ISDIR(finfo.st_mode)) // is dir
+//ftype = 'd';
+
+
+
 
 char rmlist[maxbuffer] = "";
 struct buffer_data remote_list;
@@ -111,6 +130,12 @@ local_list.p = locallist;
 local_list.max = maxbuffer;
 
 make_listfiles (&local_list, args.path);
+
+
+sock_write (sockfd, "<getlist>", 0);
+
+// 1 getlist sent
+loggingf (100, "sent: <getlist>\n");
 
 // print local list
 loggingf (100, "<local list=%d>\n%s\n", local_list.procint, local_list.p);
@@ -179,6 +204,7 @@ loggingf (1, "need to get: %d files : %d bytes\nneed to send: %d files: %d bytes
 
 //exit (0);
 sock_write (sockfd, "<FIN>", 0);
+*/
 
 close (sockfd);
 close_log ();

@@ -52,7 +52,7 @@ int max;
 
 int init_buffer (struct buffer_data *buffer, const int size);
 int getnext (const char *str, const char next, const int start, const int end);
-int midstr(const char *major, char *minor, int start, int end);
+int midstr(const char *major, char *minor, int start, const int end);
 int getlast (const char *str, const char next, const int end);
 
 

@@ -27,7 +27,56 @@
 int filereciever (struct buffer_data *inbuff, const char *basepath, const int connfd)
 {
 
-loggingf (1, "cheers, file reciever\n");
+char fname [string_sz];
+char fullpath [string_sz];
+char str_sz [100];
+
+int status = 0;
+
+int d1 = getlast (inbuff->p, ';', inbuff->len);
+// <sendfile=
+midstr (inbuff->p, fname, 10, d1);
+
+int d2 = getnext (inbuff->p, '>', d1, inbuff->len);
+midstr (inbuff->p, str_sz, d1 + 1, d2);
+
+size_t fsize = atoi (str_sz);
+size_t progress = 0;
+
+loggingf (200, "file size: %d\n", fsize);
+
+
+sprintf (fullpath, "%s/%s", basepath, fname);
+
+int localfd = open (fullpath, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+
+loggingf (200, "full path: %s, localfd: %d\n", fullpath, localfd);
+
+if (status == 0)
+{
+char temp [inbuff->len];
+int len = midstr (inbuff->p, temp, d2 + 1, inbuff->len);
+write (localfd, temp, len);
+progress += len;
+status = 1;
+loggingf (200, "status 0, len: %d\n", len);
+
+} // if status = 0
+
+while (progress < fsize)
+{
+inbuff->len = sock_read (connfd, inbuff->p, inbuff->max);
+write (localfd, inbuff->p, inbuff->len);
+progress += inbuff->len;
+
+loggingf (200, "progress: %d\n", progress);
+
+} // while
+
+//loggingf (1, "[%s], %s--%s\n", inbuff->p, fname, str_sz);
+close (localfd);
+exit (0);
+
 
 
 }

@@ -6,7 +6,7 @@ int getlast (const char *str, const char next, const int end)
 {
 const int debug = 0;
 
-    for (int i = end; i < 0; --i)
+    for (int i = end; i >= 0; --i)
     {
     
         if (debug)
@@ -57,7 +57,7 @@ if (str[i] == next)
     return  -1;
 } // getnext
 
-int midstr(const char *major, char *minor, int start, int end)
+int midstr(const char *major, char *minor, int start, const int end)
 {
 int count = 0;
 while (start < end)

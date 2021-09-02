@@ -51,9 +51,7 @@ size_t read_progress = 0;
 
 size_t write_progress = 0;
 
-//finfo.st_size
-
-int rtn;
+size_t fsize = finfo.st_size;
 
 
 char c_fbuffer [string_sz];
@@ -62,8 +60,8 @@ fbuff.p = c_fbuffer;
 fbuff.max = string_sz;
 
 
-//while (read_progress < finfo.st_size)
-  // first loop  
+while (read_progress < fsize)
+{  
 
 fbuff.len = read (locfd, fbuff.p, fbuff.max);
 read_progress += fbuff.len;
@@ -71,10 +69,14 @@ read_progress += fbuff.len;
 
 
 
-rtn = sock_write (fd, fbuff.p, fbuff.len);
+int interim_progress = sock_write (fd, fbuff.p, fbuff.len);
 
 
+if (interim_progress < fbuff.len)
+{printf ("additional logic required <int sendfile>\n"); exit (0);}
 
+
+} // while loop
 
 } // sendfile
 

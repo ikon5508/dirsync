@@ -20,6 +20,9 @@
 
 int server_mode (const struct arg_data args)
 {
+
+loggingf (100, "server init\n");
+
 struct sockaddr_in address;
 socklen_t addrlen = sizeof(address);
 
@@ -101,7 +104,7 @@ time_t deadtime;
 time (&deadtime);
 
 // if client stalls boot connection
-if (deadtime  >= basetime + 6)
+if (deadtime  >= basetime + 2)
 {loggingf (1, "client stalled\n"); break;}
 }
 

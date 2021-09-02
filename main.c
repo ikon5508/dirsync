@@ -8,17 +8,17 @@
 
 int main (int argc, char **argv)
 {
-
 struct arg_data args;
 memset (&args, 0, sizeof (args));
 
 //set default port and directory
 args.port = 9999;
 args.path [0] = '.';
-
+// server mode is default mode
+//
 /* enable debugging data by default */
 args.backdoor = 1;
-debug = 100;
+debug = 200;
 // enable debugging data by default
 
 // cycle through command line args
@@ -36,7 +36,7 @@ if (!strcmp (argv[i], "-sandbox"))
 { args.mode = sandbox; continue; }
 
 if (!strcmp (argv[i], "-client"))
-{ args.mode = sandbox; continue; }
+{ args.mode = client; continue; }
 
 if (!strcmp (argv[i], "-debug"))
 { debug = atoi (argv [i + 1]); ++i; continue; }
@@ -81,8 +81,42 @@ if (args.mode == server)
 if (args.mode == client)
 	client_mode (args);
 
-//if (args.mode == sandbox)
+if (args.mode == sandbox)
+{
+printf ("sandbox_mode\n");
 
+struct arg_data serv_args;
+memset (&serv_args, 0, sizeof (serv_args));
+serv_args.port = 9999;
+strcpy (serv_args.path, "./dir2");
+serv_args.backdoor = 1;
 
+struct arg_data client_args;
+memset (&client_args, 0, sizeof (client_args));
+client_args.mode = client;
+client_args.port = 9999;
+strcpy (client_args.path, "./dir1/pic.jpg");
+client_args.backdoor = 1;
+    
+int pid = fork ();
+
+//loggingf (1, "hello, PID: %d\n", pid);
+//} // if sandbox_mode
+
+if (pid == 0)
+{
+//loggingf (2, "hello, i child %d\n", pid);
+//sleep (1);
+client_mode (client_args);
+} // if child
+
+if (pid > 0)
+{
+//loggingf (2, "hello, i parent\n, pid");
+server_mode (serv_args);
+} // if parent
+
+} // if sandbox
 	
+
 } // main
