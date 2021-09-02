@@ -44,11 +44,11 @@ if (args.backdoor)
 if (args.host [0] == 0)
 {
 loggingf (100, "set host to local host\n");
-server = gethostbyname("localhost"); // get hostbyname
+server = gethostbyname ("localhost"); // get hostbyname
 //printf ("host set to localhost\n");
 }else{
 loggingf (100, "set host to: %s\n", args.host);
-server = gethostbyname("localhost"); // get hostbyname
+server = gethostbyname (args.host); // get hostbyname
 } // if hostset
 
 if (server == NULL) { fprintf(stderr,"ERROR, no such host\n"); exit(0); }
