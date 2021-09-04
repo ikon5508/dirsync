@@ -52,7 +52,7 @@ size_t read_progress = 0;
 size_t write_progress = 0;
 
 size_t fsize = finfo.st_size;
-
+loggingf (200, "file size: %d\n", fsize);
 
 char c_fbuffer [string_sz];
 struct buffer_data fbuff;
@@ -62,18 +62,30 @@ fbuff.max = string_sz;
 
 while (read_progress < fsize)
 {  
-
 fbuff.len = read (locfd, fbuff.p, fbuff.max);
 read_progress += fbuff.len;
 
-
-
-
 int interim_progress = sock_write (fd, fbuff.p, fbuff.len);
 
+loggingf (200, "read progress: %d - written: %d\n", read_progress, interim_progress);
 
-if (interim_progress < fbuff.len)
-{printf ("additional logic required <int sendfile>\n"); exit (0);}
+while (interim_progress < fbuff.len)
+{
+//loggingf (200, "additional logic required <int sendfile>\n"); 
+
+
+int cpylen = fbuff.len - interim_progress;
+loggingf (200, "incomplete writer leftover: %d\n", cpylen);
+
+for (int i = interim_progress; i < fbuff.len; ++i)
+fbuff.p [i - interim_progress] = fbuff.p [i];
+
+fbuff.len = cpylen;
+
+interim_progress = sock_write (fd, fbuff.p, fbuff.len);
+
+loggingf (200, "(incomplete) progress: %d - written: %d\n", cpylen, interim_progress);
+} // while
 
 
 } // while loop
